@@ -2,11 +2,15 @@ PATH
   remote: .
   specs:
     rack-proxy (0.6.4)
+      net-http-persistent
       rack
 
 GEM
   remote: http://rubygems.org/
   specs:
+    connection_pool (2.2.2)
+    net-http-persistent (3.0.0)
+      connection_pool (~> 2.2)
     power_assert (0.2.6)
     rack (2.0.3)
     rack-test (0.5.6)
@@ -25,4 +29,4 @@ DEPENDENCIES
   test-unit
 
 BUNDLED WITH
-   1.16.0.pre.2
+   1.16.2

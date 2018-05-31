@@ -1,3 +1,4 @@
+require "net/http/persistent"
 require "net_http_hacked"
 require "rack/http_streaming_response"
 
@@ -57,6 +58,14 @@ module Rack
       rewrite_response(perform_request(rewrite_env(env)))
     end
 
+    def new_connection
+      if Net::HTTP::Persistent.instance_method(:initialize).parameters.first == [:key, :name]
+        Net::HTTP::Persistent.new(name: 'rack-proxy')
+      else
+        Net::HTTP::Persistent.new('rack-proxy')
+      end
+    end
+
     # Return modified env
     def rewrite_env(env)
       env
@@ -106,15 +115,19 @@ module Rack
         target_response.verify_mode = OpenSSL::SSL::VERIFY_NONE if use_ssl && ssl_verify_none
         target_response.ssl_version = @ssl_version if @ssl_version
       else
-        http = Net::HTTP.new(backend.host, backend.port)
-        http.use_ssl = use_ssl if use_ssl
+        http =
+          if Net::HTTP::Persistent.instance_method(:initialize).parameters.first == [:key, :name]
+            Net::HTTP::Persistent.new(name: 'rack-proxy')
+          else
+            Net::HTTP::Persistent.new('rack-proxy')
+          end
+
         http.read_timeout = read_timeout
         http.verify_mode = OpenSSL::SSL::VERIFY_NONE if use_ssl && ssl_verify_none
         http.ssl_version = @ssl_version if @ssl_version
 
-        target_response = http.start do
-          http.request(target_request)
-        end
+        uri = backend.respond_to?(:url) ? backend.url : backend
+        target_response = http.request(uri, target_request)
       end
 
       headers = self.class.normalize_headers(target_response.respond_to?(:headers) ? target_response.headers : target_response.to_hash)

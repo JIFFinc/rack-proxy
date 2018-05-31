@@ -1,11 +1,15 @@
 require "test_helper"
 require "net_http_hacked"
+require 'net/https'
 
 class NetHttpHackedTest < Test::Unit::TestCase
   
   def test_net_http_hacked
-    req = Net::HTTP::Get.new("/")
-    http = Net::HTTP.start("www.iana.org", "80")
+    uri = URI("https://www.iana.org/")
+    req = Net::HTTP::Get.new(uri.path)
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = uri.scheme == 'https'
+    http.start
 
     # Response code
     res = http.begin_request_hacked(req)
