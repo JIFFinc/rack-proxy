@@ -32,6 +32,15 @@ module Rack
         Utils::HeaderHash.new Hash[mapped]
       end
 
+      def http_persistent
+        @http_persistent ||= if Net::HTTP::Persistent.instance_method(:initialize).parameters.first == [:key, :name]
+          Net::HTTP::Persistent.new(name: 'rack-proxy')
+        else
+          Net::HTTP::Persistent.new('rack-proxy')
+        end
+
+      end
+
       protected
 
       def reconstruct_header_name(name)
@@ -56,14 +65,6 @@ module Rack
 
     def call(env)
       rewrite_response(perform_request(rewrite_env(env)))
-    end
-
-    def new_connection
-      if Net::HTTP::Persistent.instance_method(:initialize).parameters.first == [:key, :name]
-        Net::HTTP::Persistent.new(name: 'rack-proxy')
-      else
-        Net::HTTP::Persistent.new('rack-proxy')
-      end
     end
 
     # Return modified env
@@ -115,12 +116,7 @@ module Rack
         target_response.verify_mode = OpenSSL::SSL::VERIFY_NONE if use_ssl && ssl_verify_none
         target_response.ssl_version = @ssl_version if @ssl_version
       else
-        http =
-          if Net::HTTP::Persistent.instance_method(:initialize).parameters.first == [:key, :name]
-            Net::HTTP::Persistent.new(name: 'rack-proxy')
-          else
-            Net::HTTP::Persistent.new('rack-proxy')
-          end
+        http = self.class.http_persistent
 
         http.read_timeout = read_timeout
         http.verify_mode = OpenSSL::SSL::VERIFY_NONE if use_ssl && ssl_verify_none
