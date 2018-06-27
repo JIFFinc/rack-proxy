@@ -60,6 +60,8 @@ module Rack
       @ssl_verify_none = opts.fetch(:ssl_verify_none, false)
       @backend = URI(opts[:backend]) if opts[:backend]
       @read_timeout = opts.fetch(:read_timeout, 60)
+      @idle_timeout = opts.fetch(:idle_timeout, 60)
+      @retry_change_requests = opts.fetch(:retry_change_requests, false)
       @ssl_version = opts[:ssl_version] if opts[:ssl_version]
     end
 
@@ -121,6 +123,8 @@ module Rack
         http.read_timeout = read_timeout
         http.verify_mode = OpenSSL::SSL::VERIFY_NONE if use_ssl && ssl_verify_none
         http.ssl_version = @ssl_version if @ssl_version
+        http.idle_timeout = @idle_timeout
+        http.retry_change_requests = @retry_change_requests
 
         uri = backend.respond_to?(:url) ? backend.url : backend
         target_response = http.request(uri, target_request)
